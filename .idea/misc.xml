@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DesignSurface">
+    <option name="filePathToZoomLevelMap">
+      <map>
+        <entry key="..\:/Users/kurti/AndroidStudioProjects/musicplayer/app/src/main/res/drawable-v24/ic_launcher_foreground.xml" value="0.118" />
+        <entry key="..\:/Users/kurti/AndroidStudioProjects/musicplayer/app/src/main/res/drawable/ic_launcher_background.xml" value="0.1055" />
+        <entry key="..\:/Users/kurti/AndroidStudioProjects/musicplayer/app/src/main/res/drawable/ic_pause_fill0_wght400_grad0_opsz48.xml" value="0.1055" />
+        <entry key="..\:/Users/kurti/AndroidStudioProjects/musicplayer/app/src/main/res/drawable/ic_play_arrow_fill0_wght400_grad0_opsz48.xml" value="0.1055" />
+        <entry key="..\:/Users/kurti/AndroidStudioProjects/musicplayer/app/src/main/res/drawable/ic_repeat_fill0_wght400_grad0_opsz48.xml" value="0.1055" />
+        <entry key="..\:/Users/kurti/AndroidStudioProjects/musicplayer/app/src/main/res/drawable/ic_repeat_one_fill0_wght400_grad0_opsz48.xml" value="0.1055" />
+        <entry key="..\:/Users/kurti/AndroidStudioProjects/musicplayer/app/src/main/res/drawable/pause-48px.xml" value="0.118" />
+        <entry key="..\:/Users/kurti/AndroidStudioProjects/musicplayer/app/src/main/res/drawable/play_arrow-48px.xml" value="0.118" />
+        <entry key="..\:/Users/kurti/AndroidStudioProjects/musicplayer/app/src/main/res/drawable/track_selector.xml" value="0.1055" />
+        <entry key="..\:/Users/kurti/AndroidStudioProjects/musicplayer/app/src/main/res/layout/activity_main.xml" value="0.4466666666666667" />
+        <entry key="..\:/Users/kurti/AndroidStudioProjects/musicplayer/app/src/main/res/layout/music_directory_cell.xml" value="0.3340080971659919" />
+        <entry key="..\:/Users/kurti/AndroidStudioProjects/musicplayer/app/src/main/res/layout/track_cell.xml" value="0.5416666666666666" />
+        <entry key="..\:/Users/kurti/AndroidStudioProjects/musicplayer/app/src/main/res/layout/tracks.xml" value="0.8" />
+      </map>
+    </option>
+  </component>
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="1.8" project-jdk-type="JavaSDK">
+    <output url="file://$PROJECT_DIR$/build/classes" />
+  </component>
+  <component name="ProjectType">
+    <option name="id" value="Android" />
+  </component>
+</project>
