@@ -4,12 +4,13 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="?attr/background_color"
     tools:context=".MusicActivity">
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/music_directory_list"
-        android:layout_width="392dp"
-        android:layout_height="226dp"
+        android:layout_width="394dp"
+        android:layout_height="228dp"
         android:layout_marginLeft="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginRight="8dp"
@@ -18,14 +19,15 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <View
+        android:id="@+id/divider"
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#FFFFFF"
-        app:layout_constraintTop_toBottomOf="@id/music_directory_list"/>
+        android:background="?attr/divider_color"
+        app:layout_constraintTop_toBottomOf="@id/music_directory_list" />
 
     <TextView
         android:id="@+id/music_title"
-        android:layout_width="232dp"
+        android:layout_width="217dp"
         android:layout_height="45dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="24dp"
@@ -36,7 +38,7 @@
         android:scrollHorizontally="true"
         android:singleLine="true"
         android:text="-----n/a-----"
-        android:textColor="#00FF00"
+        android:textColor="?attr/text_color"
         android:textSize="32sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/song_view" />
@@ -48,7 +50,7 @@
         android:layout_marginTop="28dp"
         android:layout_marginEnd="8dp"
         android:text=""
-        android:textColor="#00FF00"
+        android:textColor="?attr/text_color"
         android:textSize="24sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/song_view" />
@@ -60,6 +62,9 @@
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
+        android:progressTint="#FF0000"
+        android:thumbTint="#0000FF"
+        android:background="#212121"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.428"
         app:layout_constraintStart_toStartOf="parent"

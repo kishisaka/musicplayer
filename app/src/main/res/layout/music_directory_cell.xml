@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="80dp"
-    android:background="@drawable/track_selector">
+    android:background="?attr/track_selector">
 
     <TextView
         android:id="@+id/name"
@@ -21,6 +21,7 @@
         android:singleLine="true"
         android:text="TextView"
         android:textSize="32sp"
+        android:textColor="?attr/text_color"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/track_count"
         app:layout_constraintStart_toStartOf="parent"
@@ -34,6 +35,7 @@
         android:layout_marginEnd="8dp"
         android:text="20"
         android:textSize="20sp"
+        android:textColor="?attr/text_color"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />

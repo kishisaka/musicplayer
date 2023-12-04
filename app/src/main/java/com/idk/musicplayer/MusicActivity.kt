@@ -53,6 +53,7 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
     var songView: RecyclerView? = null
     var musicDuration: TextView? = null
     var playPauseButton: ImageButton? = null
+    var currentSongDuration = 0.0
 
     // remember our receivers for clean out when playing new directory
     val broadcastReceivers = Stack<BroadcastReceiver>()
@@ -122,7 +123,6 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
         val recyclerView: RecyclerView = findViewById(R.id.music_directory_list)
         recyclerView.adapter = adapter
         recyclerView.layoutManager = LinearLayoutManager(this)
-
         musicTitle = findViewById<TextView>(R.id.music_title)
         musicTitle?.isSelected = true
         musicDuration = findViewById(R.id.music_duration)
@@ -132,6 +132,8 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
         seekBar = findViewById(R.id.music_status)
         seekBar?.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val currentTime = currentSongDuration / 100 * progress
+                musicDuration?.text = "${getTimeFromMillis(currentTime)} / ${getTimeFromMillis(currentSongDuration)}"
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
@@ -251,6 +253,7 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
             override fun onReceive(context: Context?, intent: Intent?) {
                 intent?.let { timeInfo ->
                     val duration = timeInfo.getIntExtra(DURATION, 1).toDouble()
+                    currentSongDuration = duration
                     val currentTime = timeInfo.getIntExtra(CURRENT_TIME, 0).toDouble()
                     seekBar?.progress = (currentTime.div(duration) * 100).toInt()
                     musicDuration?.text = "${getTimeFromMillis(currentTime)} / ${getTimeFromMillis(duration)}"
