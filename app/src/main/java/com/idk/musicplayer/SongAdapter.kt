@@ -34,7 +34,6 @@ RecyclerView.Adapter<SongAdapter.SongViewHolder>() {
         holder.itemView.setOnClickListener {
             onCLickSongCallBack.onClick(position)
             selectedPos = position
-
             // reset all selected items in the list!
             notifyDataSetChanged()
         }

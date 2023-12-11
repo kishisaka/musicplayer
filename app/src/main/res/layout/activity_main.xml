@@ -26,30 +26,12 @@
         app:layout_constraintTop_toBottomOf="@id/music_directory_list" />
 
     <TextView
-        android:id="@+id/music_title"
-        android:layout_width="217dp"
-        android:layout_height="45dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="24dp"
-        android:ellipsize="marquee"
-        android:focusable="true"
-        android:focusableInTouchMode="true"
-        android:marqueeRepeatLimit="marquee_forever"
-        android:scrollHorizontally="true"
-        android:singleLine="true"
-        android:text="-----n/a-----"
-        android:textColor="?attr/text_color"
-        android:textSize="32sp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/song_view" />
-
-    <TextView
         android:id="@+id/music_duration"
         android:layout_width="141dp"
-        android:layout_height="35dp"
-        android:layout_marginTop="28dp"
-        android:layout_marginEnd="8dp"
+        android:layout_height="30dp"
+        android:layout_marginEnd="16dp"
         android:text=""
+        android:textAlignment="viewEnd"
         android:textColor="?attr/text_color"
         android:textSize="24sp"
         app:layout_constraintEnd_toEndOf="parent"
@@ -57,18 +39,13 @@
 
     <SeekBar
         android:id="@+id/music_status"
-        android:layout_width="402dp"
-        android:layout_height="60dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
+        android:layout_width="215dp"
+        android:layout_height="54dp"
+        android:background="#212121"
         android:progressTint="#FF0000"
         android:thumbTint="#0000FF"
-        android:background="#212121"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.428"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/music_title" />
+        app:layout_constraintTop_toBottomOf="@+id/song_view" />
 
     <ImageButton
         android:id="@+id/music_repeat"
@@ -119,13 +96,30 @@
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/song_view"
-        android:layout_width="392dp"
-        android:layout_height="226dp"
+        android:layout_width="385dp"
+        android:layout_height="343dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/music_directory_list" />
+
+    <TextView
+        android:id="@+id/music_name"
+        android:layout_width="141dp"
+        android:layout_height="23dp"
+        android:textAlignment="viewEnd"
+        android:ellipsize="marquee"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:scrollHorizontally="true"
+        android:singleLine="true"
+        android:text="-----n/a-----"
+        android:textColor="?attr/text_color"
+        app:layout_constraintBottom_toBottomOf="@+id/music_status"
+        app:layout_constraintEnd_toEndOf="@+id/music_duration"
+        app:layout_constraintTop_toBottomOf="@+id/music_duration" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -52,6 +52,7 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
     var seekBar: SeekBar? = null
     var songView: RecyclerView? = null
     var musicDuration: TextView? = null
+    var musicName: TextView? = null
     var playPauseButton: ImageButton? = null
     var currentSongDuration = 0.0
 
@@ -123,9 +124,10 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
         val recyclerView: RecyclerView = findViewById(R.id.music_directory_list)
         recyclerView.adapter = adapter
         recyclerView.layoutManager = LinearLayoutManager(this)
-        musicTitle = findViewById<TextView>(R.id.music_title)
+        // musicTitle = findViewById<TextView>(R.id.music_title)
         musicTitle?.isSelected = true
         musicDuration = findViewById(R.id.music_duration)
+        musicName = findViewById(R.id.music_name)
         setupButtonCLickListeners()
         requestPermission()
 
@@ -133,7 +135,8 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
         seekBar?.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val currentTime = currentSongDuration / 100 * progress
-                musicDuration?.text = "${getTimeFromMillis(currentTime)} / ${getTimeFromMillis(currentSongDuration)}"
+                val timeIndicators = "${getTimeFromMillis(currentTime)} / ${getTimeFromMillis(currentSongDuration)}"
+                musicDuration?.text = timeIndicators
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
@@ -235,6 +238,8 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
             val playerIntent = Intent(this, MediaPlayerService::class.java)
             playerIntent.putExtra(SONG_ID, songList[count].id)
             musicTitle?.text = songList[count].title
+            musicName?.text = songList[count].title
+            musicName?.isSelected = true
             startService(playerIntent)
             bindService(playerIntent, serviceConnection, Context.BIND_AUTO_CREATE)
             count += 1
@@ -256,7 +261,8 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
                     currentSongDuration = duration
                     val currentTime = timeInfo.getIntExtra(CURRENT_TIME, 0).toDouble()
                     seekBar?.progress = (currentTime.div(duration) * 100).toInt()
-                    musicDuration?.text = "${getTimeFromMillis(currentTime)} / ${getTimeFromMillis(duration)}"
+                    val timeIndicators = "${getTimeFromMillis(currentTime)} / ${getTimeFromMillis(duration)}"
+                    musicDuration?.text = timeIndicators
                 }
             }
         }
@@ -289,6 +295,8 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
         val playNextSongIntent = Intent(COM_IDK_PLAY_NEXT_SONG)
         playNextSongIntent.putExtra(SONG_ID, songList[count].id)
         musicTitle?.text = songList[count].title
+        musicName?.text = songList[count].title
+        musicName?.isSelected = true
         sendBroadcast(playNextSongIntent)
         count += 1
     }
