@@ -1,6 +1,7 @@
 package com.idk.musicplayer
 
 import android.Manifest.permission.READ_EXTERNAL_STORAGE
+import android.Manifest.permission.READ_MEDIA_AUDIO
 import android.annotation.SuppressLint
 import android.content.*
 import android.content.pm.PackageManager
@@ -36,6 +37,9 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
         const val COM_IDK_MUSIC_SEEK_START = "com.idk.music_seek_start"
         const val COM_IDK_MUSIC_SEEK_STOP = "com.idk.music_seek_stop"
         const val SONG_ID = "song_id"
+        const val SONG_TITLE = "song_title"
+        const val SONG_ARTIST = "song_artist"
+        const val SONG_ALBUM = "song_album"
         const val DURATION = "duration"
         const val CURRENT_TIME = "current_time"
         const val SEEK_VALUE = "seek_value"
@@ -111,9 +115,10 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
             override fun onClick(album: Album) {
                 //initialize count to first song
                 count = 0
-                currentSongList = getTracksForAlbum(album.id)
-                // clear out broadcast receivers so we don't inadvertently play previous song lists.
-                playMusic(getTracksForAlbum(album.id))
+                currentSongList = getTracksForAlbum(album.id, album.name).apply {
+                    // clear out broadcast receivers so we don't inadvertently play previous song lists.
+                    playMusic(this)
+                }
                 currentSongList?.let {
                     songViewAdapter?.setSongList(it)
                     songViewAdapter?.notifyDataSetChanged()
@@ -140,28 +145,35 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
             }
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
-                sendBroadcast(Intent(COM_IDK_MUSIC_SEEK_START))
+                val intent = Intent(COM_IDK_MUSIC_SEEK_START)
+                intent.setPackage(packageName)
+                sendBroadcast(intent)
             }
 
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
                 val intent = Intent(COM_IDK_MUSIC_SEEK_STOP)
+                intent.setPackage(packageName)
                 intent.putExtra(SEEK_VALUE, seekBar?.progress)
                 sendBroadcast(intent)
             }
 
         })
 
-        registerReceiver(object: BroadcastReceiver(){
+        val pauseReceiver = object: BroadcastReceiver(){
             override fun onReceive(context: Context?, intent: Intent?) {
                 playPauseButton?.setImageResource(R.drawable.ic_play_arrow_fill0_wght400_grad0_opsz48)
             }
-        }, IntentFilter(COM_IDK_PAUSE_SONG))
+        }
+        broadcastReceivers.push(pauseReceiver)
+        registerReceiver(pauseReceiver, IntentFilter(COM_IDK_PAUSE_SONG), Context.RECEIVER_NOT_EXPORTED)
 
-        registerReceiver(object: BroadcastReceiver(){
+        val playReceiver = object: BroadcastReceiver(){
             override fun onReceive(context: Context?, intent: Intent?) {
                 playPauseButton?.setImageResource(R.drawable.ic_pause_fill0_wght400_grad0_opsz48)
             }
-        }, IntentFilter(COM_IDK_PLAY_SONG))
+        }
+        broadcastReceivers.push(playReceiver)
+        registerReceiver(playReceiver, IntentFilter(COM_IDK_PLAY_SONG), Context.RECEIVER_NOT_EXPORTED)
     }
 
 
@@ -186,6 +198,7 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
         playPauseButton?.setOnClickListener(object : View.OnClickListener {
             override fun onClick(v: View?) {
                 val playPauseIntent = Intent(COM_IDK_PLAY_PAUSE_SONG)
+                playPauseIntent.setPackage(packageName)
                 sendBroadcast(playPauseIntent)
             }
         })
@@ -237,6 +250,9 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
             registerMusicDoneListener(songList)
             val playerIntent = Intent(this, MediaPlayerService::class.java)
             playerIntent.putExtra(SONG_ID, songList[count].id)
+            playerIntent.putExtra(SONG_TITLE, songList[count].title)
+            playerIntent.putExtra(SONG_ARTIST, songList[count].artist)
+            playerIntent.putExtra(SONG_ALBUM, songList[count].album)
             musicTitle?.text = songList[count].title
             musicName?.text = songList[count].title
             musicName?.isSelected = true
@@ -244,12 +260,12 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
             bindService(playerIntent, serviceConnection, Context.BIND_AUTO_CREATE)
             count += 1
         } else {
-            // music service already set, reset counter, set path and play set!
+            // music service already set, send the next song to play
             songView?.smoothScrollToPosition(count)
             songViewAdapter?.setSongIndex(count)
             registerTimeCounter()
-            queNextSong(songList)
             registerMusicDoneListener(songList)
+            queNextSong(songList)
         }
     }
 
@@ -267,7 +283,7 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
             }
         }
         broadcastReceivers.push(broadcastReceiver)
-        registerReceiver(broadcastReceiver, IntentFilter(COM_IDK_TIME_UPDATE))
+        registerReceiver(broadcastReceiver, IntentFilter(COM_IDK_TIME_UPDATE), Context.RECEIVER_NOT_EXPORTED)
     }
 
     private fun getTimeFromMillis(millis: Double) = SimpleDateFormat("m:ss").format(millis.toLong())
@@ -286,14 +302,18 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
             }
         }
         broadcastReceivers.push(broadcastReceiver)
-        registerReceiver(broadcastReceiver, IntentFilter(COM_IDK_MUSIC_DONE))
+        registerReceiver(broadcastReceiver, IntentFilter(COM_IDK_MUSIC_DONE), Context.RECEIVER_NOT_EXPORTED)
     }
 
     private fun queNextSong(songList: List<Song>) {
         songView?.smoothScrollToPosition(count)
         songViewAdapter?.setSongIndex(count)
         val playNextSongIntent = Intent(COM_IDK_PLAY_NEXT_SONG)
+        playNextSongIntent.setPackage(packageName)  // Make explicit for RECEIVER_NOT_EXPORTED
         playNextSongIntent.putExtra(SONG_ID, songList[count].id)
+        playNextSongIntent.putExtra(SONG_TITLE, songList[count].title)
+        playNextSongIntent.putExtra(SONG_ARTIST, songList[count].artist)
+        playNextSongIntent.putExtra(SONG_ALBUM, songList[count].album)
         musicTitle?.text = songList[count].title
         musicName?.text = songList[count].title
         musicName?.isSelected = true
@@ -347,24 +367,23 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
         val uri = MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI
         val columns:Array<String> = arrayOf(MediaStore.Audio.Albums._ID, MediaStore.Audio.Albums.ALBUM)
         val order = "${MediaStore.Audio.Albums.ALBUM} ASC"
-        val cursor = resolver.query(uri, columns, null, null, order, null)
-        cursor?.let { cursor ->
-            cursor.moveToFirst()
-            while (!cursor.isAfterLast) {
-                albums.add(
-                    Album(
-                        cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Albums.ALBUM)),
-                        cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Albums._ID)),
-                        0
+        val cursor = resolver.query(uri, columns, null, null, order)
+        cursor?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                do {
+                    albums.add(
+                        Album(
+                            cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Albums.ALBUM)),
+                            cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Albums._ID)),
+                            0
+                        )
                     )
-                )
-                cursor.moveToNext()
+                } while (cursor.moveToNext())
             }
         }
-        cursor?.close()
         // fill in the track counts here!
         for(album in albums) {
-            album.trackCount = getTracksForAlbum(album.id).size
+            album.trackCount = getTracksForAlbum(album.id, album.name).size
         }
         return albums
     }
@@ -375,45 +394,55 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
      * Google's content provider docs are wrong!
      */
     @SuppressLint("Range")
-    private fun getTracksForAlbum(albumId: String): List<Song> {
+    private fun getTracksForAlbum(albumId: String, albumName: String): List<Song> {
         val musicList = mutableListOf<Song>()
         val resolver: ContentResolver = contentResolver
         val uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
         val where = "${MediaStore.Audio.Media.ALBUM_ID} = $albumId"
         val columns:Array<String> = arrayOf(MediaStore.Audio.Media._ID, MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ARTIST)
-        val cursor = resolver.query(uri, columns, where, null, null, null)
-        cursor?.let { cursor ->
-            cursor.moveToFirst()
-            while (!cursor.isAfterLast) {
-                musicList.add(
-                    Song(
-                        cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE)),
-                        cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST)),
-                        cursor.getLong(cursor.getColumnIndex(MediaStore.Audio.Media._ID))
+        val cursor = resolver.query(uri, columns, where, null, null)
+        cursor?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                do {
+                    musicList.add(
+                        Song(
+                            albumName,
+                            cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.TITLE)),
+                            cursor.getString(cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST)),
+                            cursor.getLong(cursor.getColumnIndex(MediaStore.Audio.Media._ID))
+                        )
                     )
-                )
-                cursor.moveToNext()
+                } while (cursor.moveToNext())
             }
         }
-        cursor?.close()
         return musicList
     }
 
     private fun requestPermission() {
-        if (ContextCompat.checkSelfPermission(this, READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(arrayOf(READ_EXTERNAL_STORAGE), PERMISSION_REQUEST_READ_EXTERNAL)
+        // Android 13+ requires READ_MEDIA_AUDIO, earlier versions use READ_EXTERNAL_STORAGE
+        val permissionNeeded = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            READ_MEDIA_AUDIO
         } else {
-            adapter?.setMusicDirectories(getAlbums())
-            adapter?.notifyDataSetChanged()
+            READ_EXTERNAL_STORAGE
         }
+
+        if (ContextCompat.checkSelfPermission(this, permissionNeeded) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(permissionNeeded), PERMISSION_REQUEST_READ_EXTERNAL)
+        } else {
+            loadAlbums()
+        }
+    }
+
+    private fun loadAlbums() {
+        adapter?.setMusicDirectories(getAlbums())
+        adapter?.notifyDataSetChanged()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         when(requestCode) {
             PERMISSION_REQUEST_READ_EXTERNAL -> {
                 if (grantResults.isNotEmpty() && (grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                    adapter?.setMusicDirectories(getAlbums())
-                    adapter?.notifyDataSetChanged()
+                    loadAlbums()
                 }
             }
         }
@@ -439,11 +468,16 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
     }
 
     override fun onDestroy() {
+        // Stop all music playback
         if (serviceBound) {
             unbindService(serviceConnection)
-            player?.stopSelf()
         }
+        // Always stop the service to ensure music stops
+        stopService(Intent(this, MediaPlayerService::class.java))
+
+        // Clear all broadcast receivers
         clearBroadcastReceivers()
+
         super.onDestroy()
     }
 }

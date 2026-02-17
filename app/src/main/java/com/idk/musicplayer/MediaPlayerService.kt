@@ -3,7 +3,9 @@ package com.idk.musicplayer
 import android.app.Service
 import android.content.*
 import android.media.AudioManager
+import android.media.MediaMetadata
 import android.media.MediaPlayer
+import android.media.session.MediaSession
 import android.os.Binder
 import android.os.IBinder
 import android.provider.MediaStore
@@ -22,51 +24,42 @@ class MediaPlayerService: Service(), MediaPlayer.OnCompletionListener,
     private var mediaPlayer: MediaPlayer? = null
     private var resumePosition = 0
     private var audioManager: AudioManager? = null
+    private var mediaSession: MediaSession? = null
     private var songId: Long? = null
+    private var songTitle: String? = null
+    private var songArtist: String? = null
+    private var songAlbum: String?  = null
     private var isSeeking = false
+    private var seekBarTimer: Timer? = null
+    private val broadcastReceivers = mutableListOf<BroadcastReceiver>()
+    private var receiversRegistered = false
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+        Log.d("MediaPlayerService", "onStartCommand called")
         try {
             //An audio id is passed to the service through putExtra();
             val songId = intent.extras?.getLong(MusicActivity.SONG_ID)
             songId?.let {
                 this.songId = it
+                Log.d("MediaPlayerService", "Received song ID from intent: $it")
             }
         } catch (e: NullPointerException) {
+            Log.e("MediaPlayerService", "Error getting song ID from intent", e)
             stopSelf()
         }
 
-        registerReceiver(object: BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                isSeeking = true
-            }
-        }, IntentFilter(MusicActivity.COM_IDK_MUSIC_SEEK_START))
-
-        registerReceiver(object: BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                isSeeking = false
-                intent?.let {
-                    seekMedia(intent.getIntExtra(MusicActivity.SEEK_VALUE, 0))
-                }
-            }
-        }, IntentFilter(MusicActivity.COM_IDK_MUSIC_SEEK_STOP))
-
-        registerReceiver(object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                songId = intent?.extras?.getLong(MusicActivity.SONG_ID)
-                playNextTrack()
-            }
-        }, IntentFilter(MusicActivity.COM_IDK_PLAY_NEXT_SONG))
-
-        registerReceiver(object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                pauseMedia()
-            }
-        }, IntentFilter(MusicActivity.COM_IDK_PLAY_PAUSE_SONG))
+        // Only register receivers once per service instance
+        if (!receiversRegistered) {
+            registerBroadcastReceivers()
+            receiversRegistered = true
+        } else {
+            Log.d("MediaPlayerService", "Receivers already registered, skipping")
+        }
 
         //Request audio focus
         if (requestAudioFocus() == false) {
             //Could not gain focus
+            Log.w("MediaPlayerService", "Failed to get audio focus")
             stopSelf()
         }
 
@@ -74,6 +67,47 @@ class MediaPlayerService: Service(), MediaPlayer.OnCompletionListener,
             initMediaPlayer()
 
         return super.onStartCommand(intent, flags, startId)
+    }
+
+    private fun registerBroadcastReceivers() {
+        val seekStartReceiver = object: BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                isSeeking = true
+            }
+        }
+        broadcastReceivers.add(seekStartReceiver)
+        registerReceiver(seekStartReceiver, IntentFilter(MusicActivity.COM_IDK_MUSIC_SEEK_START), Context.RECEIVER_NOT_EXPORTED)
+
+        val seekStopReceiver = object: BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                isSeeking = false
+                intent?.let {
+                    seekMedia(intent.getIntExtra(MusicActivity.SEEK_VALUE, 0))
+                }
+            }
+        }
+        broadcastReceivers.add(seekStopReceiver)
+        registerReceiver(seekStopReceiver, IntentFilter(MusicActivity.COM_IDK_MUSIC_SEEK_STOP), Context.RECEIVER_NOT_EXPORTED)
+
+        val playNextReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                songId = intent?.extras?.getLong(MusicActivity.SONG_ID)
+                songTitle = intent?.extras?.getString(MusicActivity.SONG_TITLE)
+                songArtist = intent?.extras?.getString(MusicActivity.SONG_ARTIST)
+                songAlbum = intent?.extras?.getString(MusicActivity.SONG_ALBUM)
+                playNextTrack()
+            }
+        }
+        broadcastReceivers.add(playNextReceiver)
+        registerReceiver(playNextReceiver, IntentFilter(MusicActivity.COM_IDK_PLAY_NEXT_SONG), Context.RECEIVER_NOT_EXPORTED)
+
+        val playPauseReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                pauseMedia()
+            }
+        }
+        broadcastReceivers.add(playPauseReceiver)
+        registerReceiver(playPauseReceiver, IntentFilter(MusicActivity.COM_IDK_PLAY_PAUSE_SONG), Context.RECEIVER_NOT_EXPORTED)
     }
 
     fun initMediaPlayer() {
@@ -87,20 +121,28 @@ class MediaPlayerService: Service(), MediaPlayer.OnCompletionListener,
                 mp.setOnInfoListener(this)
                 mp.reset()
                 mp.setDataSource(applicationContext, getContentUri(id))
-                mp.setOnCompletionListener { sendBroadcast(Intent("com.idk.music_done")) }
+                mp.setOnCompletionListener {
+                    val intent = Intent(MusicActivity.COM_IDK_MUSIC_DONE)
+                    intent.setPackage(packageName)
+                    sendBroadcast(intent)
+                }
                 mp.prepareAsync()
             }
         }
         startUpdatingSeekBar()
+        mediaSession = MediaSession(this, "Music Player").apply {
+            isActive = true
+        }
     }
 
     private fun startUpdatingSeekBar() {
-        val timer = Timer()
-        timer.scheduleAtFixedRate(object: TimerTask(){
+        seekBarTimer = Timer()
+        seekBarTimer?.schedule(object: TimerTask(){
             override fun run() {
                 mediaPlayer?.let {
                     if (it.isPlaying && !isSeeking) {
                         val intent = Intent(MusicActivity.COM_IDK_TIME_UPDATE)
+                        intent.setPackage(packageName)
                         intent.putExtra(MusicActivity.CURRENT_TIME, it.currentPosition)
                         intent.putExtra(MusicActivity.DURATION, it.duration)
                         sendBroadcast(intent)
@@ -115,6 +157,38 @@ class MediaPlayerService: Service(), MediaPlayer.OnCompletionListener,
     override fun onBind(intent: Intent?): IBinder {
         return iBinder
     }
+
+    override fun onDestroy() {
+        // Cancel the seek bar timer
+        seekBarTimer?.cancel()
+        seekBarTimer?.purge()
+
+        // Unregister all broadcast receivers
+        for (receiver in broadcastReceivers) {
+            try {
+                unregisterReceiver(receiver)
+            } catch (e: Exception) {
+                // Receiver may have already been unregistered
+            }
+        }
+        broadcastReceivers.clear()
+
+        // Stop and release media player
+        stopMedia()
+        mediaPlayer?.release()
+        mediaPlayer = null
+
+        // Release media session
+        mediaSession?.release()
+        mediaSession = null
+
+        // Release audio focus
+        audioManager?.abandonAudioFocus(this)
+
+        super.onDestroy()
+    }
+
+    // ...existing code...
 
     override fun onCompletion(mp: MediaPlayer?) {
         stopMedia()
@@ -202,8 +276,10 @@ class MediaPlayerService: Service(), MediaPlayer.OnCompletionListener,
         ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, songId)
 
     private fun playNextTrack() {
+        Log.d("MediaPlayerService", "playNextTrack called with songId=$songId")
         songId?.let { id ->
             mediaPlayer?.let {
+                Log.d("MediaPlayerService", "Stopping current song and loading new song with ID: $id")
                 if (it.isPlaying) {
                     it.stop()
                 }
@@ -211,18 +287,34 @@ class MediaPlayerService: Service(), MediaPlayer.OnCompletionListener,
                 it.setDataSource(applicationContext, getContentUri(id))
                 it.setOnCompletionListener(object : MediaPlayer.OnCompletionListener {
                     override fun onCompletion(mp: MediaPlayer?) {
-                        sendBroadcast(Intent(MusicActivity.COM_IDK_MUSIC_DONE))
+                        val intent = Intent(MusicActivity.COM_IDK_MUSIC_DONE)
+                        intent.setPackage(packageName)
+                        sendBroadcast(intent)
                     }
                 })
                 it.prepareAsync()
+                Log.d("MediaPlayerService", "prepareAsync called for new song")
             }
-        }
+        } ?: Log.e("MediaPlayerService", "Cannot play next track - songId is null!")
     }
 
     private fun playMedia() {
         if (mediaPlayer?.isPlaying == false) {
+            mediaSession?.release()
+
+            mediaSession = MediaSession(this, "MusicPlayer").apply {
+                this.setMetadata(
+                    MediaMetadata.Builder()
+                        .putString(MediaMetadata.METADATA_KEY_ALBUM, songAlbum)
+                        .putString(MediaMetadata.METADATA_KEY_ARTIST, songArtist)
+                        .putString(MediaMetadata.METADATA_KEY_TITLE, songTitle)
+                        .build()
+                )
+            }
             mediaPlayer?.start()
-            sendBroadcast(Intent(MusicActivity.COM_IDK_PLAY_SONG))
+            val intent = Intent(MusicActivity.COM_IDK_PLAY_SONG)
+            intent.setPackage(packageName)
+            sendBroadcast(intent)
         }
     }
 
@@ -230,14 +322,18 @@ class MediaPlayerService: Service(), MediaPlayer.OnCompletionListener,
         if (mediaPlayer == null) return
         if (mediaPlayer?.isPlaying == true) {
             mediaPlayer?.stop()
-            sendBroadcast(Intent(MusicActivity.COM_IDK_PAUSE_SONG))
+            val intent = Intent(MusicActivity.COM_IDK_PAUSE_SONG)
+            intent.setPackage(packageName)
+            sendBroadcast(intent)
         }
     }
 
     private fun pauseMedia() {
         if (mediaPlayer?.isPlaying == true) {
             mediaPlayer?.pause()
-            sendBroadcast(Intent(MusicActivity.COM_IDK_PAUSE_SONG))
+            val intent = Intent(MusicActivity.COM_IDK_PAUSE_SONG)
+            intent.setPackage(packageName)
+            sendBroadcast(intent)
             mediaPlayer?.let {
                 resumePosition = it.currentPosition
             }
@@ -253,10 +349,8 @@ class MediaPlayerService: Service(), MediaPlayer.OnCompletionListener,
         }
     }
 
-    class LocalBinder: Binder() {
-        fun getService(): MediaPlayerService {
-            return MediaPlayerService()
-        }
+    inner class LocalBinder: Binder() {
+        fun getService(): MediaPlayerService = this@MediaPlayerService
     }
 
     private fun requestAudioFocus(): Boolean {
