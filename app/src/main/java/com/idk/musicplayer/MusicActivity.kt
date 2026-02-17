@@ -60,6 +60,10 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
     var playPauseButton: ImageButton? = null
     var currentSongDuration = 0.0
 
+    // Persistent receivers that should not be cleared when switching songs
+    private var pauseReceiver: BroadcastReceiver? = null
+    private var playReceiver: BroadcastReceiver? = null
+
     // remember our receivers for clean out when playing new directory
     val broadcastReceivers = Stack<BroadcastReceiver>()
 
@@ -159,20 +163,22 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
 
         })
 
-        val pauseReceiver = object: BroadcastReceiver(){
+        // These receivers should NOT be cleared when switching songs/albums
+        // They need to persist for the entire activity lifecycle
+        pauseReceiver = object: BroadcastReceiver(){
             override fun onReceive(context: Context?, intent: Intent?) {
+                android.util.Log.d("MusicActivity", "Received PAUSE_SONG broadcast - setting play icon")
                 playPauseButton?.setImageResource(R.drawable.ic_play_arrow_fill0_wght400_grad0_opsz48)
             }
         }
-        broadcastReceivers.push(pauseReceiver)
         registerReceiver(pauseReceiver, IntentFilter(COM_IDK_PAUSE_SONG), Context.RECEIVER_NOT_EXPORTED)
 
-        val playReceiver = object: BroadcastReceiver(){
+        playReceiver = object: BroadcastReceiver(){
             override fun onReceive(context: Context?, intent: Intent?) {
+                android.util.Log.d("MusicActivity", "Received PLAY_SONG broadcast - setting pause icon")
                 playPauseButton?.setImageResource(R.drawable.ic_pause_fill0_wght400_grad0_opsz48)
             }
         }
-        broadcastReceivers.push(playReceiver)
         registerReceiver(playReceiver, IntentFilter(COM_IDK_PLAY_SONG), Context.RECEIVER_NOT_EXPORTED)
     }
 
@@ -477,6 +483,22 @@ class MusicActivity : AppCompatActivity(), ActivityCompat.OnRequestPermissionsRe
 
         // Clear all broadcast receivers
         clearBroadcastReceivers()
+
+        // Unregister persistent receivers
+        pauseReceiver?.let {
+            try {
+                unregisterReceiver(it)
+            } catch (e: Exception) {
+                // Already unregistered
+            }
+        }
+        playReceiver?.let {
+            try {
+                unregisterReceiver(it)
+            } catch (e: Exception) {
+                // Already unregistered
+            }
+        }
 
         super.onDestroy()
     }

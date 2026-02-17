@@ -225,7 +225,7 @@ class MediaPlayerService: Service(), MediaPlayer.OnCompletionListener,
     }
 
     override fun onBufferingUpdate(mp: MediaPlayer?, percent: Int) {
-        TODO("Not yet implemented")
+        // Called when buffering status changes - no action needed for local files
     }
 
     override fun onAudioFocusChange(focusChange: Int) {
@@ -331,6 +331,7 @@ class MediaPlayerService: Service(), MediaPlayer.OnCompletionListener,
     private fun pauseMedia() {
         if (mediaPlayer?.isPlaying == true) {
             mediaPlayer?.pause()
+            Log.d("MediaPlayerService", "Pausing playback - sending PAUSE_SONG broadcast")
             val intent = Intent(MusicActivity.COM_IDK_PAUSE_SONG)
             intent.setPackage(packageName)
             sendBroadcast(intent)
@@ -338,6 +339,7 @@ class MediaPlayerService: Service(), MediaPlayer.OnCompletionListener,
                 resumePosition = it.currentPosition
             }
         } else {
+            Log.d("MediaPlayerService", "Media not playing - resuming playback")
             playMedia()
         }
     }
